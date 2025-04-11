@@ -16,21 +16,22 @@ async function convertToPDF() {
     mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
       .then(async function(result) {
         const html = result.value;
-
         const { PDFDocument, rgb, StandardFonts } = PDFLib;
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        
-        const text = html.replace(/<[^>]+>/g, ''); // Remove HTML tags
 
+        const text = html.replace(/<[^>]+>/g, '');
         const { width, height } = page.getSize();
         const fontSize = 12;
-        const textLines = text.match(/.{1,80}/g); // Split into lines
-
+        const textLines = text.match(/.{1,80}/g) || [];
         let y = height - 40;
 
         textLines.forEach(line => {
+          if (y < 40) {
+            page = pdfDoc.addPage();
+            y = height - 40;
+          }
           page.drawText(line, {
             x: 40,
             y: y,
@@ -44,7 +45,6 @@ async function convertToPDF() {
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement('a');
         a.href = url;
         a.download = 'converted.pdf';
